@@ -43,7 +43,7 @@ namespace KrypteringsServer
                     //meny som består av en switch som skickar använderen till olika metoder beroende på vilket case som anropas
                     string menyVal = "";
 
-                    while (menyVal != "7")
+                    while (menyVal != "8")
                     {
                         // Tag emot metodval
                         byte[] menyValByte = new byte[1000];
@@ -70,6 +70,7 @@ namespace KrypteringsServer
                                 break;
 
                             case "3":
+                                NyttMeddelande();
                                 break;
 
                             case "4":
@@ -79,6 +80,9 @@ namespace KrypteringsServer
                                 break;
 
                             case "6":
+                                break;
+
+                            case "7":
                                 break;
 
                             default: //default gör att så läge stringen inte är lika med 1-7 går den hit och visar menyn igen
@@ -107,6 +111,7 @@ namespace KrypteringsServer
                     Console.WriteLine("Anslutning accepterad från " + socket.RemoteEndPoint);
 
                     bool existerandeAnvändare = false;
+                    byte[] läsAnvändarskapningsStatusByte;
 
                     // Tag emot användare
                     byte[] bNyAnvändare = new byte[1000];
@@ -153,6 +158,11 @@ namespace KrypteringsServer
                             xmlWriter.Flush();
                             xmlWriter.Close();
                         }
+
+                        användarLista.Add(new Användare(användarNamn, användarLösenord));
+                        läsAnvändarskapningsStatusByte = Encoding.Unicode.GetBytes("Användare skapad!");
+                        Console.WriteLine("Användare skapad!");
+                        socket.Send(läsAnvändarskapningsStatusByte);
                     }
                     else if (File.Exists("användare.xml"))//Här laddas det redan existerande xml dokument
                     {
@@ -160,8 +170,6 @@ namespace KrypteringsServer
                         XmlDocument xmlDoc = new XmlDocument();
                         xmlDoc.Load("användare.xml");
                         XmlNodeList användarna = xmlDoc.SelectNodes("allaAnvändare/användare");
-
-                        byte[] läsAnvändarskapningsStatusByte;
 
                         //Skapa ett Book-element för varje nod och lägg i media listan:
                         foreach (XmlNode användare in användarna)
@@ -185,6 +193,7 @@ namespace KrypteringsServer
                         if (existerandeAnvändare == true)
                         {
                             läsAnvändarskapningsStatusByte = Encoding.Unicode.GetBytes("Användarnamnet är upptaget, försök igen.");
+                            Console.WriteLine("Användarnamnet är upptaget, försök igen.");
                             socket.Send(läsAnvändarskapningsStatusByte);
                         }
                         else if (existerandeAnvändare == false)
@@ -203,6 +212,7 @@ namespace KrypteringsServer
 
                             användarLista.Add(new Användare(användarNamn, användarLösenord));
                             läsAnvändarskapningsStatusByte = Encoding.Unicode.GetBytes("Användare skapad!");
+                            Console.WriteLine("Användare skapad!");
                             socket.Send(läsAnvändarskapningsStatusByte);
                         }
                     }
@@ -286,28 +296,119 @@ namespace KrypteringsServer
                             {
                                 inLoggad = true;
                                 läsInLoggningsStatusByte = Encoding.Unicode.GetBytes("Du är nu inloggad!");
+                                Console.WriteLine("Du är nu inloggad!");
                                 socket.Send(läsInLoggningsStatusByte);
                             }
                             else
                             {
                                 inLoggad = false;
                                 läsInLoggningsStatusByte = Encoding.Unicode.GetBytes("Felaktigt lösenord.");
+                                Console.WriteLine("Felaktigt lösenord.");
                                 socket.Send(läsInLoggningsStatusByte);
                             }
                         }
                         else
                         {
                             läsInLoggningsStatusByte = Encoding.Unicode.GetBytes("Ingen användare vid det namnet existerar.");
+                            Console.WriteLine("Ingen användare vid det namnet existerar.");
                             socket.Send(läsInLoggningsStatusByte);
                         }
                     }
                     else
                     {
                         läsInLoggningsStatusByte = Encoding.Unicode.GetBytes("Det finns inga skapade konton.");
+                        Console.WriteLine("Det finns inga skapade konton.");
                         socket.Send(läsInLoggningsStatusByte);
                     }
                     // Stäng anslutningen mot just den här klienten:
                     socket.Close();
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("Error: " + e.Message);
+                }
+            }
+        }
+
+        static void NyttMeddelande()
+        {
+            while (true)
+            {
+                try
+                {
+                    Console.WriteLine("Väntar på anslutning...");
+
+                    // Någon försöker ansluta. Acceptera anslutningen
+                    Socket socket = tcpListener.AcceptSocket();
+                    Console.WriteLine("Anslutning accepterad från " + socket.RemoteEndPoint);
+                    
+                    byte[] läsMeddelandeStatus;
+                    DateTime meddelandeID = DateTime.Now;
+                    byte[] nyttMeddelandeByte = new byte[1000];
+                    string nyttMeddelande = "";
+                    int nyttMeddelandeByteStorlek;
+
+                    // Tag emot meddelande
+                    nyttMeddelandeByteStorlek = socket.Receive(nyttMeddelandeByte);
+                    Console.WriteLine();
+                    Console.WriteLine("Skapande av nytt meddelande mottogs...");
+
+                    // Konvertera meddelande till string från byte
+                    for (int i = 0; i < nyttMeddelandeByteStorlek; i++)
+                    {
+                        if (i % 2 == 0)
+                        {
+                            nyttMeddelande += Convert.ToChar(nyttMeddelandeByte[i]);
+                        }
+                    }
+                    
+
+                    //Skapar en ny fil för användare eller öppnar en redan exiseterande fil
+                    if (!File.Exists("meddelande.xml"))
+                    {
+                        XmlWriterSettings xmlWriterSettings = new XmlWriterSettings();
+                        xmlWriterSettings.Indent = true;
+                        xmlWriterSettings.NewLineOnAttributes = true;
+
+                        using (XmlWriter xmlWriter = XmlWriter.Create("meddelande.xml", xmlWriterSettings))
+                        {
+                            //Skapar layouten och tillsätter den första användaren
+                            xmlWriter.WriteStartDocument();
+                            xmlWriter.WriteStartElement("allaMeddelanden");
+
+                            xmlWriter.WriteStartElement("meddelande");
+                            xmlWriter.WriteElementString("meddelandeID", Kryptering.Inkryptering(meddelandeID.ToString()));
+                            xmlWriter.WriteElementString("meddelandeText", nyttMeddelande);
+                            xmlWriter.WriteEndElement();
+
+                            xmlWriter.WriteEndElement();
+                            xmlWriter.WriteEndDocument();
+                            xmlWriter.Flush();
+                            xmlWriter.Close();
+                        }
+                        läsMeddelandeStatus = Encoding.Unicode.GetBytes("Meddelande skapat!");
+                        Console.WriteLine("Meddelande skapat!");
+                        socket.Send(läsMeddelandeStatus);
+                    }
+                    else if (File.Exists("meddelande.xml"))//Här laddas det redan existerande xml dokument
+                    {
+                        XDocument xDocument = XDocument.Load("meddelande.xml");
+                        XElement root = xDocument.Element("allaMeddelanden");
+                        IEnumerable<XElement> rows = root.Descendants("meddelande");
+                        XElement firstRow = rows.First();
+
+                        //Lägger in ett nytt element högst upp
+                        firstRow.AddBeforeSelf(
+                           new XElement("meddelande",
+                           new XElement("meddelandeID", Kryptering.Inkryptering(meddelandeID.ToString())),
+                           new XElement("meddelandeText", nyttMeddelande)));
+                        xDocument.Save("meddelande.xml");
+
+                        läsMeddelandeStatus = Encoding.Unicode.GetBytes("Meddelande skapat!");
+                        Console.WriteLine("Meddelande skapat!");
+                        socket.Send(läsMeddelandeStatus);
+                    }
+                    Console.WriteLine("Svar skickat");
                 }
                 catch (Exception e)
                 {

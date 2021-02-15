@@ -30,7 +30,7 @@ namespace KrypteringsKlient
                     //meny som består av en switch som skickar använderen till olika metoder beroende på vilket case som anropas
                     string menyVal = "";
 
-                    while (menyVal != "7")
+                    while (menyVal != "8")
                     {
                         Console.WriteLine();
                         Console.WriteLine("----------------------------------------------------");
@@ -38,12 +38,13 @@ namespace KrypteringsKlient
                         Console.WriteLine("----------------------------------------------------");
                         Console.WriteLine();
                         Console.WriteLine("1. Skapa använade");//klar men titta upp hur många bytes som behövs i servern kolla även om användarnamnet är upptaget
-                        Console.WriteLine("2. Logga in");
+                        Console.WriteLine("2. Logga in"); //Klar
                         Console.WriteLine("3. Skapa ett nytt meddelande");
                         Console.WriteLine("4. Visa alla meddelanden (dekrypterade)");
                         Console.WriteLine("5. Hämta sparade meddelade(från XML - fil)");
                         Console.WriteLine("6. Spara alla meddelande(i XML - fil)");
-                        Console.WriteLine("7. Avsluta programmet");//Klar
+                        Console.WriteLine("7. Logga ut");
+                        Console.WriteLine("8. Avsluta programmet");//Klar
                         Console.WriteLine("Skriv in siffra mellan 1-7 och tryck sedan Enter...");
                         Console.WriteLine();
 
@@ -67,6 +68,7 @@ namespace KrypteringsKlient
                                 break;
 
                             case "3":
+                                NyttMeddelande();
                                 break;
 
                             case "4":
@@ -76,6 +78,9 @@ namespace KrypteringsKlient
                                 break;
 
                             case "6":
+                                break;
+
+                            case "7":
                                 break;
 
                             default: //default gör att så läge stringen inte är lika med 1-7 går den hit och visar menyn igen
@@ -226,6 +231,11 @@ namespace KrypteringsKlient
                 string address = "127.0.0.1"; // är en local host
                 int port = 8001;
 
+                TcpClient tcpClient = new TcpClient();
+                tcpClient.Connect(address, port);
+
+                NetworkStream tcpStream = tcpClient.GetStream();
+
                 //För att skapa en användare behövs användarnamn och lösenord dessa är båda i string form
                 string användarnamn;
                 string lösenord;
@@ -276,13 +286,9 @@ namespace KrypteringsKlient
                     //Skapa användare som sickas till serven i servern kommer stringen att splittas för att ge 2 stings
                     string användare = $"{Kryptering.Inkryptering(användarnamn)},{Kryptering.Inkryptering(lösenord)}";
 
-                    TcpClient tcpClient = new TcpClient();
-                    tcpClient.Connect(address, port);
-
                     byte[] loggInByte = Encoding.Unicode.GetBytes(användare);
 
                     //Sickar iväg användaren till servern
-                    NetworkStream tcpStream = tcpClient.GetStream();
                     tcpStream.Write(loggInByte, 0, loggInByte.Length);
 
 
@@ -337,6 +343,98 @@ namespace KrypteringsKlient
                     // Stäng anslutningen:
                     tcpClient.Close();
                 }
+            }
+            catch (Exception e)//felmedelande ifall servern inte svarar
+            {
+                Console.WriteLine("Error: " + e.Message);
+            }
+
+        }
+
+        static void NyttMeddelande()
+        {
+            Console.WriteLine("----------------------------------------------------");
+            Console.WriteLine("             SKAPA ETT NYTT MEDDELANDE              ");
+            Console.WriteLine("----------------------------------------------------");
+            Console.WriteLine();
+            Console.WriteLine("Skriv in ett meddelande.");
+            Console.WriteLine("Meddelanden ska vara mellan 1 till 250 tecken långt");
+            Console.WriteLine();
+            Console.WriteLine("----------------------------------------------------");
+
+            try //Försöker ansluta till servern om det inte fungerar går det vidare till exception
+            {
+                string address = "127.0.0.1"; // är en local host
+                int port = 8001;
+
+                TcpClient tcpClient = new TcpClient();
+                tcpClient.Connect(address, port);
+
+                NetworkStream tcpStream = tcpClient.GetStream();
+
+                // Anslut till servern:
+                Console.WriteLine("Ansluter...");
+
+                string meddelande;
+                bool meddelandeSkapat = false;
+
+                while (meddelandeSkapat == false)//Pågar så länge en användare har skapats
+                {
+                    //Skapar ett meddelande inom avgränsningarna
+                    while (true)
+                    {
+                        Console.WriteLine("Meddelnde: ");
+                        meddelande = Console.ReadLine();
+                        if (meddelande.Length > 0 && meddelande.Length < 251)
+                        {
+                            break;
+                        }
+                        else //Feltext för att underlätta för användaren att förstå vad som gick fel
+                        {
+                            Console.WriteLine();
+                            Console.WriteLine("Ditt meddelande ska vara mellan 1 till 250 tecken långt");
+                            Console.WriteLine($"Ditt användarnamn hade {meddelande.Length} tecken");
+                            Console.WriteLine();
+                        }
+                    }
+
+                    byte[] nyttMeddelandeByte = Encoding.Unicode.GetBytes(Kryptering.Inkryptering(meddelande));
+
+                    //Sickar iväg användaren till servern
+                    tcpStream.Write(nyttMeddelandeByte, 0, nyttMeddelandeByte.Length);
+
+
+                    byte[] läsMeddelandeStatusByte = new byte[256];
+                    int läsMeddelandeStatusLängd = tcpStream.Read(läsMeddelandeStatusByte, 0, läsMeddelandeStatusByte.Length);
+
+                    // Konvertera meddelandet till ett string-objekt och skriv ut:
+                    string läsMeddelandeStatus = "";
+                    for (int i = 0; i < läsMeddelandeStatusLängd; i++)
+                    {
+                        if (i % 2 == 0)
+                        {
+                            läsMeddelandeStatus += Convert.ToChar(läsMeddelandeStatusByte[i]);
+                        }
+                    }
+
+                    if (läsMeddelandeStatus == "Meddelande skapat!")
+                    {
+                        Console.WriteLine();
+                        Console.WriteLine(läsMeddelandeStatus);
+                        Console.WriteLine("Tryck på enter för att gå vidare till menyn.");
+                        Console.ReadLine();
+                    }
+                    else
+                    {
+                        Console.WriteLine();
+                        Console.WriteLine("Tryck på enter för att gå vidare till menyn.");
+                        Console.ReadLine();
+                    }
+
+                    // Stäng anslutningen:
+                    tcpClient.Close();
+                }
+
             }
             catch (Exception e)//felmedelande ifall servern inte svarar
             {
