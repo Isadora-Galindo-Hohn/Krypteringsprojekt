@@ -25,6 +25,8 @@ namespace KrypteringsServer
 
             //Lägga alla användare i en lista som sedan sickas till 
             List<Användare> användarLista = new List<Användare>();
+            string inLoggadAnvändarNamn;
+            string inLoggadAnvändarLösenord;
 
             // Skapa ett TcpListener-objekt, börja lyssna och vänta på anslutning
             IPAddress myIp = IPAddress.Parse("127.0.0.1");
@@ -99,7 +101,6 @@ namespace KrypteringsServer
 
         static List<Användare> SkapaAnvändare(List<Användare> användarLista)
         {
-
             while (true)
             {
                 try
@@ -250,7 +251,6 @@ namespace KrypteringsServer
                     string loggInLösenord;
                     bool existerandeAnvändare = false;
                     bool korrektLösenord = false;
-                    bool inLoggad;
 
                     byte[] loggInByte = new byte[1000];
                     int loggInByteStorlek = socket.Receive(loggInByte);
@@ -294,14 +294,12 @@ namespace KrypteringsServer
 
                             if (korrektLösenord == true)
                             {
-                                inLoggad = true;
                                 läsInLoggningsStatusByte = Encoding.Unicode.GetBytes("Du är nu inloggad!");
                                 Console.WriteLine("Du är nu inloggad!");
                                 socket.Send(läsInLoggningsStatusByte);
                             }
                             else
                             {
-                                inLoggad = false;
                                 läsInLoggningsStatusByte = Encoding.Unicode.GetBytes("Felaktigt lösenord.");
                                 Console.WriteLine("Felaktigt lösenord.");
                                 socket.Send(läsInLoggningsStatusByte);
