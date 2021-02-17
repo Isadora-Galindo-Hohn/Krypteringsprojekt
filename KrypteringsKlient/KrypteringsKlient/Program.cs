@@ -44,7 +44,7 @@ namespace KrypteringsKlient
                         Console.WriteLine("4. Visa alla meddelanden (dekrypterade)");
                         Console.WriteLine("5. Hämta sparade meddelade(från XML - fil)");
                         Console.WriteLine("6. Spara alla meddelande(i XML - fil)");
-                        Console.WriteLine("7. Logga ut");
+                        Console.WriteLine("7. Logga ut");//Klar
                         Console.WriteLine("8. Avsluta programmet");//Klar
                         Console.WriteLine("Skriv in siffra mellan 1-7 och tryck sedan Enter...");
                         Console.WriteLine();
@@ -82,6 +82,8 @@ namespace KrypteringsKlient
                                 break;
 
                             case "7":
+                                Console.WriteLine("Du är nu utloggad");
+                                inLoggad = false;
                                 break;
 
                             default: //default gör att så läge stringen inte är lika med 1-7 går den hit och visar menyn igen
@@ -127,7 +129,6 @@ namespace KrypteringsKlient
                     TcpClient tcpClient = new TcpClient();
                     tcpClient.Connect(address, port);
 
-                    NetworkStream tcpStream = tcpClient.GetStream();
 
                     // Anslut till servern:
                     Console.WriteLine("Ansluter...");
@@ -181,6 +182,8 @@ namespace KrypteringsKlient
                         byte[] bNyAnvändare = Encoding.Unicode.GetBytes(användare);
 
                         //Sickar iväg användaren till servern
+
+                        NetworkStream tcpStream = tcpClient.GetStream();
                         tcpStream.Write(bNyAnvändare, 0, bNyAnvändare.Length);
 
                         byte[] läsAnvändarskapningsStatusByte = new byte[256];
@@ -266,8 +269,6 @@ namespace KrypteringsKlient
                     // Anslut till servern:
                     Console.WriteLine("Ansluter...");
 
-                    while (inLoggad == false)//Pågar så länge en användare har skapats
-                    {
                         //Skapar ett användarnamn inom avgränsningarna
                         while (true)
                         {
@@ -332,23 +333,19 @@ namespace KrypteringsKlient
                             Console.WriteLine(läsInLoggningsStatus);
                             Console.WriteLine("Tryck på enter för att gå vidare till menyn.");
                             Console.ReadLine();
-                            inLoggad = false;
-                            break;
                         }
-
                         else if (läsInLoggningsStatus == "Ingen användare vid det namnet existerar.")
                         {
                             Console.WriteLine();
                             Console.WriteLine(läsInLoggningsStatus);
                             Console.WriteLine("Tryck på enter för att gå vidare till menyn.");
                             Console.ReadLine();
-                            inLoggad = false;
                         }
                         else if (läsInLoggningsStatus == "Du är nu inloggad!")
                         {
                             Console.WriteLine();
                             Console.WriteLine(läsInLoggningsStatus);
-                            Console.WriteLine("Du kan nu titta på och sicka meddelanden");
+                            Console.WriteLine("Du kan nu titta på och skicka meddelanden");
                             Console.WriteLine("Tryck på enter för att gå vidare till menyn.");
                             Console.ReadLine();
                             inLoggad = true;
@@ -359,11 +356,10 @@ namespace KrypteringsKlient
                             Console.WriteLine(läsInLoggningsStatus);
                             Console.WriteLine("Tryck på enter för att gå vidare till menyn.");
                             Console.ReadLine();
-                            inLoggad = true;
                         }
                         // Stäng anslutningen:
                         tcpClient.Close();
-                    }
+                    
                 }
                 catch (Exception e)//felmedelande ifall servern inte svarar
                 {
@@ -454,12 +450,14 @@ namespace KrypteringsKlient
                             Console.WriteLine(läsMeddelandeStatus);
                             Console.WriteLine("Tryck på enter för att gå vidare till menyn.");
                             Console.ReadLine();
+                            meddelandeSkapat = true;
                         }
                         else
                         {
                             Console.WriteLine();
                             Console.WriteLine("Tryck på enter för att gå vidare till menyn.");
                             Console.ReadLine();
+                            meddelandeSkapat = true;
                         }
 
                         // Stäng anslutningen:
@@ -472,6 +470,8 @@ namespace KrypteringsKlient
                     Console.WriteLine("Error: " + e.Message);
                 }
             }
+
+            Console.WriteLine("hej");
         }
     }
 }

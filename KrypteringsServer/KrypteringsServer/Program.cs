@@ -25,8 +25,25 @@ namespace KrypteringsServer
 
             //Lägga alla användare i en lista som sedan sickas till 
             List<Användare> användarLista = new List<Användare>();
-            string inLoggadAnvändarNamn;
-            string inLoggadAnvändarLösenord;
+
+            if (File.Exists("användare.xml"))//Här laddas det redan existerande xml dokument
+            {
+                //Ladda in alla book-noder:
+                XmlDocument xmlDoc = new XmlDocument();
+                xmlDoc.Load("användare.xml");
+                XmlNodeList användarna = xmlDoc.SelectNodes("allaAnvändare/användare");
+
+                //Skapa ett Book-element för varje nod och lägg i media listan:
+                foreach (XmlNode användare in användarna)
+                {
+                    string användarnamn = användare.SelectSingleNode("användarNamn").InnerText;
+                    string användarLöseord = användare.SelectSingleNode("användarLösenord").InnerText;
+                    Användare temp = new Användare(användarnamn, användarLöseord);
+                    användarLista.Add(temp);
+                }
+            }
+
+            bool inLoggad = false;
 
             // Skapa ett TcpListener-objekt, börja lyssna och vänta på anslutning
             IPAddress myIp = IPAddress.Parse("127.0.0.1");
@@ -64,15 +81,30 @@ namespace KrypteringsServer
                         switch (menyVal)
                         {
                             case "1":
-                                SkapaAnvändare(användarLista);
+                                if (inLoggad == false)
+                                {
+                                    List<Användare> gammalAnvändarLista = new List<Användare>();
+                                    SkapaAnvändare(användarLista);
+                                    if (gammalAnvändarLista.Count < användarLista.Count)
+                                    {
+                                        inLoggad = true;
+                                    }
+                                    gammalAnvändarLista = användarLista;
+                                }
                                 break;
 
                             case "2":
-                                LoggIn(användarLista);
+                                if (inLoggad == false)
+                                {
+                                    LoggIn(användarLista, inLoggad);
+                                }
                                 break;
 
                             case "3":
-                                NyttMeddelande();
+                                if (inLoggad == true)
+                                {
+                                    NyttMeddelande();
+                                }
                                 break;
 
                             case "4":
@@ -85,6 +117,7 @@ namespace KrypteringsServer
                                 break;
 
                             case "7":
+                                inLoggad = false;
                                 break;
 
                             default: //default gör att så läge stringen inte är lika med 1-7 går den hit och visar menyn igen
@@ -105,7 +138,7 @@ namespace KrypteringsServer
             {
                 try
                 {
-                    Console.WriteLine("Väntar på anslutning...");
+                    Console.WriteLine("Väntar på anslutning... i skapa användare");
 
                     // Någon försöker ansluta. Acceptera anslutningen
                     Socket socket = tcpListener.AcceptSocket();
@@ -167,20 +200,6 @@ namespace KrypteringsServer
                     }
                     else if (File.Exists("användare.xml"))//Här laddas det redan existerande xml dokument
                     {
-                        //Ladda in alla book-noder:
-                        XmlDocument xmlDoc = new XmlDocument();
-                        xmlDoc.Load("användare.xml");
-                        XmlNodeList användarna = xmlDoc.SelectNodes("allaAnvändare/användare");
-
-                        //Skapa ett Book-element för varje nod och lägg i media listan:
-                        foreach (XmlNode användare in användarna)
-                        {
-                            string användarnamn = användare.SelectSingleNode("användarNamn").InnerText;
-                            string användarLöseord = användare.SelectSingleNode("användarLösenord").InnerText;
-                            Användare temp = new Användare(användarnamn, användarLöseord);
-                            användarLista.Add(temp);
-                        }
-
                         existerandeAnvändare = false;
 
                         for (int i = 0; i < användarLista.Count; i++)
@@ -230,7 +249,7 @@ namespace KrypteringsServer
             }
         }
 
-        static void LoggIn(List<Användare> användarLista)
+        static bool LoggIn(List<Användare> användarLista, bool inLoggad)
         {
             while (true)
             {
@@ -294,12 +313,14 @@ namespace KrypteringsServer
 
                             if (korrektLösenord == true)
                             {
+                                inLoggad = true;
                                 läsInLoggningsStatusByte = Encoding.Unicode.GetBytes("Du är nu inloggad!");
                                 Console.WriteLine("Du är nu inloggad!");
                                 socket.Send(läsInLoggningsStatusByte);
                             }
                             else
                             {
+                                inLoggad = false;
                                 läsInLoggningsStatusByte = Encoding.Unicode.GetBytes("Felaktigt lösenord.");
                                 Console.WriteLine("Felaktigt lösenord.");
                                 socket.Send(läsInLoggningsStatusByte);
@@ -310,6 +331,7 @@ namespace KrypteringsServer
                             läsInLoggningsStatusByte = Encoding.Unicode.GetBytes("Ingen användare vid det namnet existerar.");
                             Console.WriteLine("Ingen användare vid det namnet existerar.");
                             socket.Send(läsInLoggningsStatusByte);
+                            inLoggad = false;
                         }
                     }
                     else
@@ -317,6 +339,7 @@ namespace KrypteringsServer
                         läsInLoggningsStatusByte = Encoding.Unicode.GetBytes("Det finns inga skapade konton.");
                         Console.WriteLine("Det finns inga skapade konton.");
                         socket.Send(läsInLoggningsStatusByte);
+                        inLoggad = false;
                     }
                     // Stäng anslutningen mot just den här klienten:
                     socket.Close();
@@ -325,6 +348,8 @@ namespace KrypteringsServer
                 {
                     Console.WriteLine("Error: " + e.Message);
                 }
+
+                return inLoggad;
             }
         }
 
@@ -334,15 +359,15 @@ namespace KrypteringsServer
             {
                 try
                 {
-                    Console.WriteLine("Väntar på anslutning...");
+                    Console.WriteLine("Väntar på anslutning... i medeladen");
 
                     // Någon försöker ansluta. Acceptera anslutningen
                     Socket socket = tcpListener.AcceptSocket();
                     Console.WriteLine("Anslutning accepterad från " + socket.RemoteEndPoint);
-                    
+
                     byte[] läsMeddelandeStatus;
                     DateTime meddelandeID = DateTime.Now;
-                    byte[] nyttMeddelandeByte = new byte[1000];
+                    byte[] nyttMeddelandeByte = new byte[10000];
                     string nyttMeddelande = "";
                     int nyttMeddelandeByteStorlek;
 
@@ -359,7 +384,7 @@ namespace KrypteringsServer
                             nyttMeddelande += Convert.ToChar(nyttMeddelandeByte[i]);
                         }
                     }
-                    
+
 
                     //Skapar en ny fil för användare eller öppnar en redan exiseterande fil
                     if (!File.Exists("meddelande.xml"))
@@ -426,64 +451,3 @@ namespace KrypteringsServer
         }
     }
 }
-
-
-
-
-/*
-if (!File.Exists("användar.xml"))
-{
-    byte[] användarInfoByte = Encoding.Unicode.GetBytes("Det finns inga användare");
-    socket.Send(användarInfoByte);
-    Console.WriteLine("Användarlista skickat"); 
-} 
-else if (File.Exists("användare.xml"))
-{
-    //Lägga alla användare i en lista som sedan sickas till 
-    List<Användare> användarLista = new List<Användare>();
-    string användareIString;
-
-    //Ladda in alla book-noder:
-    XmlDocument xmlDoc = new XmlDocument();
-    xmlDoc.Load("användare.xml");
-    XmlNodeList användarna = xmlDoc.SelectNodes("allaAnvändare/användare");
-
-    //Skapa ett Book-element för varje nod och lägg i media listan:
-    foreach (XmlNode användare in användarna)
-    {
-        string användarnamn = användare.SelectSingleNode("användarNamn").InnerText;
-        string användarLöseord = användare.SelectSingleNode("användarLösenord").InnerText;
-        Användare temp = new Användare(användarNamn, användarLöseord);
-        användarLista.Add(temp);
-    }
-
-    användareIString = String.Join(",", användarLista);
-
-    byte[] användarInfoByte = Encoding.Unicode.GetBytes("Det finns inga användare");
-    socket.Send(användarInfoByte);
-    Console.WriteLine("Användarlista skickat");
-
-}
-*/
-/*Console.WriteLine("Meddelande: " + message);
-                   byte[] bSend = Encoding.Unicode.GetBytes("Meddelande mottaget");
-                   socket.Send(bSend);
-                   Console.WriteLine("Svar skickat");*/
-
-/* byte[] bMessage = new byte[256];
-            int messageSize = socket.Receive(bMessage);
-            Console.WriteLine("Meddelandet mottogs...");
-
-            // Konvertera meddelandet till en string-variabel och skriv ut
-            string message = "";
-            for (int i = 0; i < messageSize; i++)
-            {
-                if (i % 2 == 0)
-                {
-                    message += Convert.ToChar(bMessage[i]);
-                }
-            }
-
-            Console.WriteLine("Meddelande: " + message);
-            byte[] bSend = Encoding.Unicode.GetBytes("Meddelande mottaget");
-            socket.Send(bSend);*/
