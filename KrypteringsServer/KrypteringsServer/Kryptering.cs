@@ -16,50 +16,6 @@ namespace KrypteringsServer
         //Denna konstant bestämmer antalet iterationer för lösenords bytes genereings funktion
         private const int derivationIterationer = 1000;
 
-        public static string Inkryptering(string oKrypteradText)
-        {
-            string krypteringsLösenord = "<3 Amos <3";
-
-            /*Salt och IV är slumpmässigt genereade varje gång, men är förberedda till krypterad krypteringstext
-            så att samma Salt- och IV-värden kan användas vid dekryptering.*/
-            byte[] saltStringBytes = Generera256BitsAvSlumpmässigaEntropier();
-            byte[] ivStringBytes = Generera256BitsAvSlumpmässigaEntropier();
-
-            //Gör om texten till bytes
-            byte[] oKrypteradTextBytes = Encoding.UTF8.GetBytes(oKrypteradText);
-
-            using (Rfc2898DeriveBytes lösenord = new Rfc2898DeriveBytes(krypteringsLösenord, saltStringBytes, derivationIterationer))
-            {
-                byte[] nyckelBytes = lösenord.GetBytes(nyckelLängd / 8);
-                using (RijndaelManaged systemeriskNyckel = new RijndaelManaged())
-                {
-                    systemeriskNyckel.BlockSize = 1000;
-                    systemeriskNyckel.Mode = CipherMode.CBC;
-                    systemeriskNyckel.Padding = PaddingMode.PKCS7;
-
-                    using (ICryptoTransform krypterare = systemeriskNyckel.CreateEncryptor(nyckelBytes, ivStringBytes))
-                    {
-                        using (MemoryStream minnesStröm = new MemoryStream())
-                        {
-                            using (CryptoStream krypteringsStröm = new CryptoStream(minnesStröm, krypterare, CryptoStreamMode.Write))
-                            {
-                                krypteringsStröm.Write(oKrypteradTextBytes, 0, oKrypteradTextBytes.Length);
-                                krypteringsStröm.FlushFinalBlock();
-
-                                //Skapa de slutliga byten som en sammanfogning av de slumpmässiga saltbyten, de slumpmässiga iv-byten och chifferbyten.
-                                byte[] krypteraTextBytes = saltStringBytes;
-                                krypteraTextBytes = krypteraTextBytes.Concat(ivStringBytes).ToArray();
-                                krypteraTextBytes = krypteraTextBytes.Concat(minnesStröm.ToArray()).ToArray();
-                                minnesStröm.Close();
-                                krypteringsStröm.Close();
-                                return Convert.ToBase64String(krypteraTextBytes);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
         public static string Avkryptera(string krypteringsText)
         {
             string krypteringsLösenord = "<3 Amos <3";
@@ -98,27 +54,12 @@ namespace KrypteringsServer
                                 minnesStröm.Close();
                                 krypteringsStröm.Close();
 
-                                return Encoding.UTF8.GetString(oKrypteradText, 0, dekrypteradByteMängd);
+                                return Encoding.Unicode.GetString(oKrypteradText, 0, dekrypteradByteMängd);
                             }
                         }
                     }
                 }
             }
-        }
-
-
-        // Metod som genererar 256 bits av slumpmässiga entropier
-        private static byte[] Generera256BitsAvSlumpmässigaEntropier()
-        {
-            // 32 bytes ger oss 256 bits
-            byte[] slumpmessigByte = new byte[32];
-
-            using (RNGCryptoServiceProvider rngCsp = new RNGCryptoServiceProvider())
-            {
-                // Fyller arryn med ckryptografiska säkra slumpmässiga byets
-                rngCsp.GetBytes(slumpmessigByte);
-            }
-            return slumpmessigByte;
         }
     }
 }

@@ -113,6 +113,7 @@ namespace KrypteringsServer
                                 break;
 
                             case "5":
+                                LaddaNerMeddelanden(användarLista);
                                 break;
 
                             case "6":
@@ -523,8 +524,83 @@ namespace KrypteringsServer
                             for (int i = 0; i < allaMeddelanden.Count; i++)
                             {
                                 läsMeddelande = Encoding.Unicode.GetBytes($"{allaMeddelanden[i].MeddelandeText}");
-                                Console.WriteLine($"{i+1} av {allaMeddelanden.Count} skickade");
+                                Console.WriteLine($"{i + 1} av {allaMeddelanden.Count} skickade");
                                 socket.Send(läsMeddelande);
+                            }
+                            break;
+                        }
+                    }
+
+                    Console.WriteLine("Meddelanden skickat");
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("Error: " + e.Message);
+                }
+
+                break;
+            }
+        }
+
+        static void LaddaNerMeddelanden(List<Användare> användarLista)
+        {
+            while (true)
+            {
+                try
+                {
+                    Socket socket = tcpListener.AcceptSocket();
+                    Console.WriteLine("Anslutning accepterad från " + socket.RemoteEndPoint);
+
+                    Console.WriteLine("Visa meddeladen");
+
+                    byte[] läsMeddelande;
+                    byte[] läsMeddelandeID;
+                    byte[] läsAntalMeddelanden;
+                    List<Meddelande> allaMeddelanden = new List<Meddelande>();
+
+                    byte[] sändareByte = new byte[1000];
+                    string sändare = "";
+                    int sändareByteStorlek;
+
+                    sändareByteStorlek = socket.Receive(sändareByte);
+                    Console.WriteLine();
+
+                    for (int i = 0; i < sändareByteStorlek; i++)
+                    {
+                        if (i % 2 == 0)
+                        {
+                            sändare += Convert.ToChar(sändareByte[i]);
+                        }
+                    }
+
+                    Console.WriteLine("Sändare mottogs...");
+
+                    foreach (Användare a in användarLista)
+                    {
+                        if (Kryptering.Avkryptera(a.AnvändarNamn) == Kryptering.Avkryptera(sändare))
+                        {
+                            foreach (Meddelande m in a.Meddelanden)
+                            {
+                                allaMeddelanden.Add(m);
+                            }
+                            Console.WriteLine("meddelanden till laggda");
+
+                            läsAntalMeddelanden = Encoding.Unicode.GetBytes($"{allaMeddelanden.Count}");
+                            Console.WriteLine($"Antal meddelanden: {allaMeddelanden.Count}");
+                            socket.Send(läsAntalMeddelanden);
+
+                            for (int i = 0; i < allaMeddelanden.Count; i++)
+                            {
+                                läsMeddelande = Encoding.Unicode.GetBytes($"{allaMeddelanden[i].MeddelandeText}");
+                                Console.WriteLine($"{i + 1} av {allaMeddelanden.Count} skickade");
+                                socket.Send(läsMeddelande);
+                            }
+
+                            for (int i = 0; i < allaMeddelanden.Count; i++)
+                            {
+                                läsMeddelandeID = Encoding.Unicode.GetBytes($"{allaMeddelanden[i].MeddelandeID}");
+                                Console.WriteLine($"{i + 1} av {allaMeddelanden.Count} skickade");
+                                socket.Send(läsMeddelandeID);
                             }
                             break;
                         }

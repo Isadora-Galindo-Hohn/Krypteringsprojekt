@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.IO;
 using System.Net;
+using System.Xml;
 using System.Text;
 using System.Net.Sockets;
 
@@ -26,19 +27,18 @@ namespace KrypteringsKlient
 
                     while (menyVal != "7")
                     {
-                        Console.Clear();
                         Console.WriteLine();
                         Console.WriteLine("----------------------------------------------------");
                         Console.WriteLine("                     MENY                           ");
                         Console.WriteLine("----------------------------------------------------");
                         Console.WriteLine();
-                        Console.WriteLine("1. Skapa användare");//klar
-                        Console.WriteLine("2. Logga in"); //Klar
-                        Console.WriteLine("3. Skapa och spara ett nytt meddelande");//Klar
-                        Console.WriteLine("4. Visa alla meddelanden (dekrypterade)");//Klar se när meddelandet sickades??
-                        Console.WriteLine("5. Hämta sparade meddelade(från XML - fil)");
-                        Console.WriteLine("6. Logga ut");//Klar
-                        Console.WriteLine("7. Avsluta programmet");//Klar
+                        Console.WriteLine("1. Skapa användare");
+                        Console.WriteLine("2. Logga in");
+                        Console.WriteLine("3. Skapa och spara ett nytt meddelande");
+                        Console.WriteLine("4. Visa alla meddelanden (dekrypterade)");
+                        Console.WriteLine("5. Ladda ner fil med meddelanden");
+                        Console.WriteLine("6. Logga ut");
+                        Console.WriteLine("7. Avsluta programmet");
                         Console.WriteLine("Skriv in siffra mellan 1-7 och tryck sedan Enter...");
                         Console.WriteLine();
 
@@ -65,6 +65,7 @@ namespace KrypteringsKlient
                                 break;
 
                             case "5":
+                                LaddaNerMeddelanden(inLoggadAnvändare, menyVal);
                                 break;
 
                             case "6":
@@ -151,7 +152,9 @@ namespace KrypteringsKlient
                         {
                             Console.Write("Användarnamn: ");
                             användarnamn = Console.ReadLine();
-                            if (användarnamn.Length > 0 && användarnamn.Length < 17)
+
+                            ValideraInmatning(användarnamn);
+                            if (användarnamn.Length < 17)
                             {
                                 break;
                             }
@@ -168,8 +171,10 @@ namespace KrypteringsKlient
                         while (true)
                         {
                             Console.Write("Lösenord: ");
+
                             lösenord = Console.ReadLine();
-                            if (lösenord.Length > 0 && lösenord.Length < 17)
+                            ValideraInmatning(lösenord);
+                            if (lösenord.Length < 17)
                             {
                                 break;
                             }
@@ -282,7 +287,9 @@ namespace KrypteringsKlient
                     {
                         Console.Write("Användarnamn: ");
                         användarnamn = Console.ReadLine();
-                        if (användarnamn.Length > 0 && användarnamn.Length < 17)
+
+                        ValideraInmatning(användarnamn);
+                        if (användarnamn.Length < 17)
                         {
                             break;
                         }
@@ -299,7 +306,10 @@ namespace KrypteringsKlient
                     while (true)
                     {
                         Console.Write("Lösenord: ");
+
                         lösenord = Console.ReadLine();
+
+                        ValideraInmatning(lösenord);
                         if (lösenord.Length > 0 && lösenord.Length < 17)
                         {
                             break;
@@ -433,7 +443,9 @@ namespace KrypteringsKlient
                         {
                             Console.WriteLine("Meddelnde: ");
                             meddelande = Console.ReadLine();
-                            if (meddelande.Length > 0 && meddelande.Length < 251)
+
+                            ValideraInmatning(meddelande);
+                            if (meddelande.Length < 251)
                             {
                                 break;
                             }
@@ -506,7 +518,7 @@ namespace KrypteringsKlient
             {
                 SkickaMenyValTillServer(menyVal);
                 Console.WriteLine("----------------------------------------------------");
-                Console.WriteLine("             SKAPA ETT NYTT MEDDELANDE              ");
+                Console.WriteLine("                 Visa Meddelanden                   ");
                 Console.WriteLine("----------------------------------------------------");
                 Console.WriteLine();
                 Console.WriteLine("Skriv in ett meddelande.");
@@ -527,7 +539,6 @@ namespace KrypteringsKlient
                     // Anslut till servern:
                     Console.WriteLine("Ansluter...");
 
-                    Console.WriteLine(inLoggadAnvändare);
                     byte[] sändareByte = Encoding.Unicode.GetBytes(Kryptering.Inkryptering(inLoggadAnvändare));
 
                     //Sickar iväg användaren till servern
@@ -547,6 +558,7 @@ namespace KrypteringsKlient
                     }
 
                     int antalMeddelanden = int.Parse(läsAntalMeddelanden);
+                    List<string> meddelande = new List<string>();
 
                     Console.WriteLine($"Antal meddelanden {antalMeddelanden}");
 
@@ -574,10 +586,15 @@ namespace KrypteringsKlient
                                 }
                             }
 
+                            meddelande.Add(läsMeddelande);
+                        }
+
+                        for (int i = 0; i < antalMeddelanden; i++)
+                        {
                             Console.WriteLine();
-                            Console.WriteLine($"Meddelande {i+1} av {antalMeddelanden}:");
+                            Console.WriteLine($"Meddelande {i + 1} av {antalMeddelanden}:");
                             Console.WriteLine();
-                            Console.WriteLine($"{Kryptering.Avkryptera(läsMeddelande)}");
+                            Console.WriteLine($"{Kryptering.Avkryptera(meddelande[i])}");
                         }
 
                         Console.WriteLine();
@@ -593,6 +610,159 @@ namespace KrypteringsKlient
                 {
                     Console.WriteLine("Error: " + e.Message);
                 }
+            }
+        }
+
+        static void LaddaNerMeddelanden(string inLoggadAnvändare, string menyVal)
+        {
+            if (inLoggadAnvändare == "")
+            {
+                Console.WriteLine("Du måste logga in för att se ");
+                Console.WriteLine("Om du vill logga in måste du först logga in.");
+                Console.WriteLine("Tryck på enter för att gå vidare till menyn.");
+                Console.ReadLine();
+            }
+            else
+            {
+                SkickaMenyValTillServer(menyVal);
+                Console.WriteLine("----------------------------------------------------");
+                Console.WriteLine("                Ladda ner meddelande                ");
+                Console.WriteLine("----------------------------------------------------");
+                Console.WriteLine();
+                Console.WriteLine("Filen laddas ner under .../Krypteringsprojekt/\nKrypteringsKlient/KrypteringsKlient/bin/Debug");
+                Console.WriteLine();
+                Console.WriteLine("----------------------------------------------------");
+
+                try //Försöker ansluta till servern om det inte fungerar går det vidare till exception
+                {
+                    string address = "127.0.0.1"; // är en local host
+                    int port = 8001;
+
+                    TcpClient tcpClient = new TcpClient();
+                    tcpClient.Connect(address, port);
+
+                    NetworkStream tcpStream = tcpClient.GetStream();
+
+                    // Anslut till servern:
+                    Console.WriteLine("Ansluter...");
+
+                    byte[] sändareByte = Encoding.Unicode.GetBytes(Kryptering.Inkryptering(inLoggadAnvändare));
+
+                    //Sickar iväg användaren till servern
+                    tcpStream.Write(sändareByte, 0, sändareByte.Length);
+
+                    byte[] läsAntalMeddelandenByte = new byte[256];
+                    int läsAntalMeddelandenByteLängd = tcpStream.Read(läsAntalMeddelandenByte, 0, läsAntalMeddelandenByte.Length);
+
+                    // Konvertera meddelandet till ett string-objekt och skriv ut:
+                    string läsAntalMeddelanden = "";
+                    for (int i = 0; i < läsAntalMeddelandenByteLängd; i++)
+                    {
+                        if (i % 2 == 0)
+                        {
+                            läsAntalMeddelanden += Convert.ToChar(läsAntalMeddelandenByte[i]);
+                        }
+                    }
+
+                    int antalMeddelanden = int.Parse(läsAntalMeddelanden);
+
+                    if (antalMeddelanden == 0)
+                    {
+                        Console.WriteLine();
+                        Console.WriteLine("Du har inga skapade meddelanden att ladda ner.");
+                        Console.WriteLine("Tryck på enter för att gå vidare till menyn.");
+                        Console.ReadLine();
+                    }
+                    else
+                    {
+                        List<string> meddelandeID = new List<string>();
+                        List<string> meddelandeText = new List<string>();
+
+                        for (int i = 0; i < antalMeddelanden; i++)
+                        {
+                            byte[] läsMeddelandeByte = new byte[10000];
+                            int läsMeddelandeLängd = tcpStream.Read(läsMeddelandeByte, 0, läsMeddelandeByte.Length);
+
+                            // Konvertera meddelandet till ett string-objekt och skriv ut:
+                            string läsMeddelande = "";
+                            for (int j = 0; j < läsMeddelandeLängd; j++)
+                            {
+                                if (j % 2 == 0)
+                                {
+                                    läsMeddelande += Convert.ToChar(läsMeddelandeByte[j]);
+                                }
+                            }
+
+                            meddelandeText.Add(läsMeddelande);
+                        }
+
+                        for (int i = 0; i < antalMeddelanden; i++)
+                        {
+                            byte[] läsMeddelandeIDByte = new byte[10000];
+                            int läsMeddelandeIDLängd = tcpStream.Read(läsMeddelandeIDByte, 0, läsMeddelandeIDByte.Length);
+
+                            // Konvertera meddelandet till ett string-objekt och skriv ut:
+                            string läsMeddelandeID = "";
+                            for (int j = 0; j < läsMeddelandeIDLängd; j++)
+                            {
+                                if (j % 2 == 0)
+                                {
+                                    läsMeddelandeID += Convert.ToChar(läsMeddelandeIDByte[j]);
+                                }
+                            }
+
+                            meddelandeID.Add(läsMeddelandeID);
+                        }
+
+                        if (File.Exists("meddelanden.xml"))
+                        {
+                            File.Delete("meddelanden.xml");
+                        }
+
+                        XmlWriterSettings xmlWriterSettings = new XmlWriterSettings();
+                        xmlWriterSettings.Indent = true;
+                        xmlWriterSettings.NewLineOnAttributes = true;
+
+                        using (XmlWriter xmlWriter = XmlWriter.Create("meddelanden.xml", xmlWriterSettings))
+                        {
+                            //Skapar layouten och tillsätter den första användaren
+                            xmlWriter.WriteStartDocument();
+                            xmlWriter.WriteStartElement("meddelanden");
+
+                            for (int i = 0; i < meddelandeText.Count; i++)
+                            {
+                                xmlWriter.WriteStartElement("meddelande");
+                                xmlWriter.WriteElementString("meddelandeID", meddelandeID[i]);
+                                xmlWriter.WriteElementString("meddelandeText", Kryptering.Avkryptera(meddelandeText[i]));
+                                xmlWriter.WriteEndElement();
+                            }
+
+                            xmlWriter.WriteEndElement();
+                            xmlWriter.WriteEndDocument();
+                            xmlWriter.Flush();
+                            xmlWriter.Close();
+                        }
+                        Console.WriteLine();
+                        Console.WriteLine("Filen är nu ner laddad.");
+                        Console.WriteLine("Tryck på enter för att gå vidare till menyn.");
+                        Console.ReadLine();
+                    }
+                    // Stäng anslutningen:
+                    tcpClient.Close();
+
+                }
+                catch (Exception e)//felmedelande ifall servern inte svarar
+                {
+                    Console.WriteLine("Error: " + e.Message);
+                }
+            }
+        }
+
+        private static void ValideraInmatning<T>(T inmatning)
+        {
+            if (inmatning.ToString().Length == 0)
+            {
+                throw new InmatningÄrNull();
             }
         }
     }

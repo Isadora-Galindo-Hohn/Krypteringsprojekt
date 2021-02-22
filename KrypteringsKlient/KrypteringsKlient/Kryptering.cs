@@ -26,7 +26,7 @@ namespace KrypteringsKlient
             byte[] ivStringBytes = Generera256BitsAvSlumpmässigaEntropier();
 
             //Gör om texten till bytes
-            byte[] oKrypteradTextBytes = Encoding.UTF8.GetBytes(oKrypteradText);
+            byte[] oKrypteradTextBytes = Encoding.Unicode.GetBytes(oKrypteradText);
 
             using (Rfc2898DeriveBytes lösenord = new Rfc2898DeriveBytes(krypteringsLösenord, saltStringBytes, derivationIterationer))
             {
