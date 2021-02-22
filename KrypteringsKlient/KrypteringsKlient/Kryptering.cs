@@ -98,7 +98,7 @@ namespace KrypteringsKlient
                                 minnesStröm.Close();
                                 krypteringsStröm.Close();
 
-                                return Encoding.UTF8.GetString(oKrypteradText, 0, dekrypteradByteMängd);
+                                return Encoding.Unicode.GetString(oKrypteradText, 0, dekrypteradByteMängd);
                             }
                         }
                     }
