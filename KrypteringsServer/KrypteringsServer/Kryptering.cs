@@ -33,7 +33,7 @@ namespace KrypteringsServer
                 byte[] nyckelBytes = lösenord.GetBytes(nyckelLängd / 8);
                 using (RijndaelManaged systemeriskNyckel = new RijndaelManaged())
                 {
-                    systemeriskNyckel.BlockSize = 256;
+                    systemeriskNyckel.BlockSize = 1000;
                     systemeriskNyckel.Mode = CipherMode.CBC;
                     systemeriskNyckel.Padding = PaddingMode.PKCS7;
 

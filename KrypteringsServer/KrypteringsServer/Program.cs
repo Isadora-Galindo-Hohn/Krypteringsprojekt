@@ -7,6 +7,7 @@ using System.Xml;
 using System.IO;
 using System.Xml.Linq;
 using System.Linq;
+using System.Threading;
 
 namespace KrypteringsServer
 {
@@ -32,14 +33,24 @@ namespace KrypteringsServer
                 XmlDocument xmlDoc = new XmlDocument();
                 xmlDoc.Load("användare.xml");
                 XmlNodeList användarna = xmlDoc.SelectNodes("allaAnvändare/användare");
+                XmlNodeList meddelanden = xmlDoc.SelectNodes("allaAnvändare/användare/meddelanden/meddelande");
 
                 //Skapa ett Book-element för varje nod och lägg i media listan:
                 foreach (XmlNode användare in användarna)
                 {
                     string användarnamn = användare.SelectSingleNode("användarNamn").InnerText;
                     string användarLöseord = användare.SelectSingleNode("användarLösenord").InnerText;
-                    Användare temp = new Användare(användarnamn, användarLöseord);
-                    användarLista.Add(temp);
+                    Användare tempA = new Användare(användarnamn, användarLöseord);
+
+                    foreach (XmlNode meddelande in meddelanden)
+                    {
+                        string meddelandeID = meddelande.SelectSingleNode("meddelandeID").InnerText;
+                        string meddelandeText = meddelande.SelectSingleNode("meddelandeText").InnerText;
+                        Meddelande tempM = new Meddelande(meddelandeID, meddelandeText);
+
+                        tempA.Meddelanden.Add(tempM);
+                    }
+                    användarLista.Add(tempA);
                 }
             }
 
@@ -54,16 +65,20 @@ namespace KrypteringsServer
             {
                 try
                 {
-                    Console.WriteLine("Väntar på anslutning...");
 
-                    // Någon försöker ansluta. Acceptera anslutningen
-                    Socket socket = tcpListener.AcceptSocket();
-                    Console.WriteLine("Anslutning accepterad från " + socket.RemoteEndPoint);
                     //meny som består av en switch som skickar använderen till olika metoder beroende på vilket case som anropas
                     string menyVal = "";
 
-                    while (menyVal != "8")
+                    while (menyVal != "7")
                     {
+                        Console.Clear();
+                        Console.WriteLine("Väntar på anslutning...");
+                        Console.WriteLine("I meny");
+
+                        // Någon försöker ansluta. Acceptera anslutningen
+                        Socket socket = tcpListener.AcceptSocket();
+                        Console.WriteLine("Anslutning accepterad från " + socket.RemoteEndPoint);
+
                         // Tag emot metodval
                         byte[] menyValByte = new byte[1000];
                         int menyValByteStorlek = socket.Receive(menyValByte);
@@ -77,46 +92,30 @@ namespace KrypteringsServer
                             }
                         }
 
-                        Console.Clear();
                         switch (menyVal)
                         {
                             case "1":
-                                if (inLoggad == false)
-                                {
-                                    List<Användare> gammalAnvändarLista = new List<Användare>();
-                                    SkapaAnvändare(användarLista);
-                                    if (gammalAnvändarLista.Count < användarLista.Count)
-                                    {
-                                        inLoggad = true;
-                                    }
-                                    gammalAnvändarLista = användarLista;
-                                }
+
+                                SkapaAnvändare(användarLista);
                                 break;
 
                             case "2":
-                                if (inLoggad == false)
-                                {
-                                    LoggIn(användarLista, inLoggad);
-                                }
+                                LoggIn(användarLista, inLoggad);
+
                                 break;
 
                             case "3":
-                                if (inLoggad == true)
-                                {
-                                    NyttMeddelande();
-                                }
+                                NyttMeddelande(användarLista);
                                 break;
 
                             case "4":
+                                VisaMeddelanden(användarLista);
                                 break;
 
                             case "5":
                                 break;
 
                             case "6":
-                                break;
-
-                            case "7":
                                 inLoggad = false;
                                 break;
 
@@ -138,11 +137,12 @@ namespace KrypteringsServer
             {
                 try
                 {
-                    Console.WriteLine("Väntar på anslutning... i skapa användare");
-
-                    // Någon försöker ansluta. Acceptera anslutningen
                     Socket socket = tcpListener.AcceptSocket();
                     Console.WriteLine("Anslutning accepterad från " + socket.RemoteEndPoint);
+
+                    Console.WriteLine("Skapa användare");
+
+                    // Någon försöker ansluta. Acceptera anslutningen
 
                     bool existerandeAnvändare = false;
                     byte[] läsAnvändarskapningsStatusByte;
@@ -185,6 +185,7 @@ namespace KrypteringsServer
                             xmlWriter.WriteStartElement("användare");
                             xmlWriter.WriteElementString("användarNamn", användarNamn);
                             xmlWriter.WriteElementString("användarLösenord", användarLösenord);
+                            xmlWriter.WriteStartElement("meddelande");
                             xmlWriter.WriteEndElement();
 
                             xmlWriter.WriteEndElement();
@@ -255,15 +256,14 @@ namespace KrypteringsServer
             {
                 try
                 {
-                    Console.WriteLine("Väntar på anslutning...");
-
-                    // Någon försöker ansluta. Acceptera anslutningen
-                    Socket socket = tcpListener.AcceptSocket();
-                    Console.WriteLine("Anslutning accepterad från " + socket.RemoteEndPoint);
-
                     // =======================================================================
                     // Logga in
                     // =======================================================================
+
+                    Socket socket = tcpListener.AcceptSocket();
+                    Console.WriteLine("Anslutning accepterad från " + socket.RemoteEndPoint);
+
+                    Console.WriteLine("Logga in");
 
                     byte[] läsInLoggningsStatusByte;
                     string loggInNamn;
@@ -343,6 +343,7 @@ namespace KrypteringsServer
                     }
                     // Stäng anslutningen mot just den här klienten:
                     socket.Close();
+                    Console.WriteLine("socket stängd");
                 }
                 catch (Exception e)
                 {
@@ -353,20 +354,35 @@ namespace KrypteringsServer
             }
         }
 
-        static void NyttMeddelande()
+        static void NyttMeddelande(List<Användare> användarLista)
         {
             while (true)
             {
                 try
                 {
-                    Console.WriteLine("Väntar på anslutning... i medeladen");
-
-                    // Någon försöker ansluta. Acceptera anslutningen
                     Socket socket = tcpListener.AcceptSocket();
                     Console.WriteLine("Anslutning accepterad från " + socket.RemoteEndPoint);
 
+                    Console.WriteLine("Meddeladen");
+
                     byte[] läsMeddelandeStatus;
-                    DateTime meddelandeID = DateTime.Now;
+
+                    byte[] sändareByte = new byte[1000];
+                    string sändare = "";
+                    int sändareByteStorlek;
+
+                    sändareByteStorlek = socket.Receive(sändareByte);
+                    Console.WriteLine();
+                    Console.WriteLine("Sändare mottogs...");
+
+                    for (int i = 0; i < sändareByteStorlek; i++)
+                    {
+                        if (i % 2 == 0)
+                        {
+                            sändare += Convert.ToChar(sändareByte[i]);
+                        }
+                    }
+
                     byte[] nyttMeddelandeByte = new byte[10000];
                     string nyttMeddelande = "";
                     int nyttMeddelandeByteStorlek;
@@ -385,58 +401,143 @@ namespace KrypteringsServer
                         }
                     }
 
+                    DateTime meddelandeID = DateTime.Now;
 
-                    //Skapar en ny fil för användare eller öppnar en redan exiseterande fil
-                    if (!File.Exists("meddelande.xml"))
+                    foreach (Användare a in användarLista)
                     {
-                        XmlWriterSettings xmlWriterSettings = new XmlWriterSettings();
-                        xmlWriterSettings.Indent = true;
-                        xmlWriterSettings.NewLineOnAttributes = true;
-
-                        using (XmlWriter xmlWriter = XmlWriter.Create("meddelande.xml", xmlWriterSettings))
+                        if (Kryptering.Avkryptera(a.AnvändarNamn) == Kryptering.Avkryptera(sändare))
                         {
-                            //Skapar layouten och tillsätter den första användaren
-                            xmlWriter.WriteStartDocument();
-                            xmlWriter.WriteStartElement("allaMeddelanden");
-
-                            xmlWriter.WriteStartElement("meddelande");
-                            xmlWriter.WriteElementString("meddelandeID", Kryptering.Inkryptering(meddelandeID.ToString()));
-                            xmlWriter.WriteElementString("meddelandeText", nyttMeddelande);
-                            xmlWriter.WriteEndElement();
-
-                            xmlWriter.WriteEndElement();
-                            xmlWriter.WriteEndDocument();
-                            xmlWriter.Flush();
-                            xmlWriter.Close();
+                            a.Meddelanden.Add(new Meddelande(meddelandeID.ToString(), nyttMeddelande));
+                            break;
                         }
-                        läsMeddelandeStatus = Encoding.Unicode.GetBytes("Meddelande skapat!");
-                        Console.WriteLine("Meddelande skapat!");
-                        socket.Send(läsMeddelandeStatus);
                     }
-                    else if (File.Exists("meddelande.xml"))//Här laddas det redan existerande xml dokument
+
+                    File.Delete("användare.xml");
+
+                    XmlWriterSettings xmlWriterSettings = new XmlWriterSettings();
+                    xmlWriterSettings.Indent = true;
+                    xmlWriterSettings.NewLineOnAttributes = true;
+
+                    using (XmlWriter xmlWriter = XmlWriter.Create("användare.xml", xmlWriterSettings))
                     {
-                        XDocument xDocument = XDocument.Load("meddelande.xml");
-                        XElement root = xDocument.Element("allaMeddelanden");
-                        IEnumerable<XElement> rows = root.Descendants("meddelande");
-                        XElement firstRow = rows.First();
+                        //Skapar layouten och tillsätter den första användaren
+                        xmlWriter.WriteStartDocument();
+                        xmlWriter.WriteStartElement("allaAnvändare");
 
-                        //Lägger in ett nytt element högst upp
-                        firstRow.AddBeforeSelf(
-                           new XElement("meddelande",
-                           new XElement("meddelandeID", Kryptering.Inkryptering(meddelandeID.ToString())),
-                           new XElement("meddelandeText", nyttMeddelande)));
-                        xDocument.Save("meddelande.xml");
+                        for (int i = 0; i < användarLista.Count; i++)
+                        {
+                            if (användarLista[i].Meddelanden.Count > 0)
+                            {
+                                xmlWriter.WriteStartElement("användare");
+                                xmlWriter.WriteElementString("användarNamn", användarLista[i].AnvändarNamn);
+                                xmlWriter.WriteElementString("användarLösenord", användarLista[i].AnvändarLösenord);
+                                xmlWriter.WriteStartElement("meddelanden");
 
-                        läsMeddelandeStatus = Encoding.Unicode.GetBytes("Meddelande skapat!");
-                        Console.WriteLine("Meddelande skapat!");
-                        socket.Send(läsMeddelandeStatus);
+                                foreach (Meddelande m in användarLista[i].Meddelanden)
+                                {
+                                    xmlWriter.WriteStartElement("meddelande");
+                                    xmlWriter.WriteElementString("meddelandeID", m.MeddelandeID);
+                                    xmlWriter.WriteElementString("meddelandeText", m.MeddelandeText);
+                                    xmlWriter.WriteEndElement();
+                                }
+
+                                xmlWriter.WriteEndElement();
+                                xmlWriter.WriteEndElement();
+                            }
+                            else
+                            {
+                                xmlWriter.WriteStartElement("användare");
+                                xmlWriter.WriteElementString("användarNamn", användarLista[i].AnvändarNamn);
+                                xmlWriter.WriteElementString("användarLösenord", användarLista[i].AnvändarLösenord);
+                                xmlWriter.WriteEndElement();
+                            }
+                        }
+
+                        xmlWriter.WriteEndElement();
+                        xmlWriter.WriteEndDocument();
+                        xmlWriter.Flush();
+                        xmlWriter.Close();
                     }
-                    Console.WriteLine("Svar skickat");
+
+                    läsMeddelandeStatus = Encoding.Unicode.GetBytes("Meddelande skapat!");
+                    Console.WriteLine("Meddelande skapat!");
+                    socket.Send(läsMeddelandeStatus);
+
                 }
                 catch (Exception e)
                 {
                     Console.WriteLine("Error: " + e.Message);
                 }
+
+                Console.WriteLine("Svar skickat");
+                break;
+            }
+        }
+
+        static void VisaMeddelanden(List<Användare> användarLista)
+        {
+            while (true)
+            {
+                try
+                {
+                    Socket socket = tcpListener.AcceptSocket();
+                    Console.WriteLine("Anslutning accepterad från " + socket.RemoteEndPoint);
+
+                    Console.WriteLine("Visa meddeladen");
+
+                    byte[] läsMeddelande;
+                    byte[] läsAntalMeddelanden;
+                    List<Meddelande> allaMeddelanden = new List<Meddelande>();
+
+                    byte[] sändareByte = new byte[1000];
+                    string sändare = "";
+                    int sändareByteStorlek;
+
+                    sändareByteStorlek = socket.Receive(sändareByte);
+                    Console.WriteLine();
+
+                    for (int i = 0; i < sändareByteStorlek; i++)
+                    {
+                        if (i % 2 == 0)
+                        {
+                            sändare += Convert.ToChar(sändareByte[i]);
+                        }
+                    }
+
+                    Console.WriteLine("Sändare mottogs...");
+
+                    foreach (Användare a in användarLista)
+                    {
+                        if (Kryptering.Avkryptera(a.AnvändarNamn) == Kryptering.Avkryptera(sändare))
+                        {
+                            foreach (Meddelande m in a.Meddelanden)
+                            {
+                                allaMeddelanden.Add(m);
+                            }
+                            Console.WriteLine("meddelanden till laggda");
+
+                            läsAntalMeddelanden = Encoding.Unicode.GetBytes($"{allaMeddelanden.Count}");
+                            Console.WriteLine($"Antal meddelanden: {allaMeddelanden.Count}");
+                            socket.Send(läsAntalMeddelanden);
+
+                            for (int i = 0; i < allaMeddelanden.Count; i++)
+                            {
+                                läsMeddelande = Encoding.Unicode.GetBytes($"{allaMeddelanden[i].MeddelandeText}");
+                                Console.WriteLine($"{i+1} av {allaMeddelanden.Count} skickade");
+                                socket.Send(läsMeddelande);
+                            }
+                            break;
+                        }
+                    }
+
+                    Console.WriteLine("Meddelanden skickat");
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("Error: " + e.Message);
+                }
+
+                break;
             }
         }
 

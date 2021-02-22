@@ -8,7 +8,28 @@ namespace KrypteringsServer
 {
     class Meddelande
     {
-        int meddelandeID;
+        string meddelandeID;
         string meddelande;
+
+        public Meddelande(string mID, string m)
+        {
+            this.meddelandeID = mID;
+            this.meddelande = m;
+        }
+
+        public string MeddelandeID
+        {
+            get
+            {
+                return meddelandeID;
+            }
+        }
+        public string MeddelandeText
+        {
+            get
+            {
+                return meddelande;
+            }
+        }
     }
 }

@@ -10,6 +10,7 @@ namespace KrypteringsServer
     {
         string användarNamn;
         string användarLösenord;
+        List<Meddelande> meddelanden = new List<Meddelande>();
 
         public Användare(string n, string l)
         {
@@ -30,6 +31,14 @@ namespace KrypteringsServer
             get
             {
                 return användarLösenord;
+            }
+        }
+
+        public List<Meddelande> Meddelanden
+        {
+            get
+            {
+                return meddelanden;
             }
         }
 

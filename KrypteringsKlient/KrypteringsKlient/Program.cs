@@ -20,70 +20,56 @@ namespace KrypteringsKlient
             {
                 try
                 {
-                    Console.WriteLine("Väntar på anslutning...");
-
-                    string address = "127.0.0.1"; // är en local host
-                    int port = 8001;
-                    TcpClient tcpClient = new TcpClient();
-                    tcpClient.Connect(address, port);
-
                     //meny som består av en switch som skickar använderen till olika metoder beroende på vilket case som anropas
                     string menyVal = "";
-                    bool inLoggad = false;
+                    string inLoggadAnvändare = "";
 
-                    while (menyVal != "8")
+                    while (menyVal != "7")
                     {
+                        Console.Clear();
                         Console.WriteLine();
                         Console.WriteLine("----------------------------------------------------");
                         Console.WriteLine("                     MENY                           ");
                         Console.WriteLine("----------------------------------------------------");
                         Console.WriteLine();
-                        Console.WriteLine("1. Skapa användare");//klar men titta upp hur många bytes som behövs i servern kolla även om användarnamnet är upptaget
+                        Console.WriteLine("1. Skapa användare");//klar
                         Console.WriteLine("2. Logga in"); //Klar
-                        Console.WriteLine("3. Skapa ett nytt meddelande");
-                        Console.WriteLine("4. Visa alla meddelanden (dekrypterade)");
+                        Console.WriteLine("3. Skapa och spara ett nytt meddelande");//Klar
+                        Console.WriteLine("4. Visa alla meddelanden (dekrypterade)");//Klar se när meddelandet sickades??
                         Console.WriteLine("5. Hämta sparade meddelade(från XML - fil)");
-                        Console.WriteLine("6. Spara alla meddelande(i XML - fil)");
-                        Console.WriteLine("7. Logga ut");//Klar
-                        Console.WriteLine("8. Avsluta programmet");//Klar
+                        Console.WriteLine("6. Logga ut");//Klar
+                        Console.WriteLine("7. Avsluta programmet");//Klar
                         Console.WriteLine("Skriv in siffra mellan 1-7 och tryck sedan Enter...");
                         Console.WriteLine();
 
                         menyVal = Console.ReadLine();
 
-                        byte[] menyValByte = Encoding.Unicode.GetBytes(menyVal);
-
-                        //Sickar iväg användaren till servern
-                        NetworkStream tcpStream = tcpClient.GetStream();
-                        tcpStream.Write(menyValByte, 0, menyValByte.Length);
 
                         Console.Clear();
                         switch (menyVal)
                         {
                             case "1":
-                                inLoggad = SkapaAnvändare(inLoggad);
+                                inLoggadAnvändare = SkapaAnvändare(inLoggadAnvändare, menyVal);
                                 break;
 
                             case "2":
-                                inLoggad = LoggaIn(inLoggad);
+                                inLoggadAnvändare = LoggaIn(inLoggadAnvändare, menyVal);
                                 break;
 
                             case "3":
-                                NyttMeddelande(inLoggad);
+                                NyttMeddelande(inLoggadAnvändare, menyVal);
                                 break;
 
                             case "4":
+                                VisaMeddelanden(inLoggadAnvändare, menyVal);
                                 break;
 
                             case "5":
                                 break;
 
                             case "6":
-                                break;
-
-                            case "7":
                                 Console.WriteLine("Du är nu utloggad");
-                                inLoggad = false;
+                                inLoggadAnvändare = "";
                                 break;
 
                             default: //default gör att så läge stringen inte är lika med 1-7 går den hit och visar menyn igen
@@ -98,28 +84,49 @@ namespace KrypteringsKlient
             }
         }
 
-        // I skapa användare metoden skapas användare som lagras i servern i ett xml document
-        static bool SkapaAnvändare(bool inLoggad)
+        static void SkickaMenyValTillServer(string menyVal)
         {
-            if (inLoggad == true)
+            try //Försöker ansluta till servern om det inte fungerar går det vidare till exception
             {
-                Console.WriteLine("Du har redan loggat in.");
-                Console.WriteLine("Om du vill logga ut måste du först logga ut.");
-                Console.WriteLine("Tryck på enter för att gå vidare till menyn.");
-                Console.ReadLine();
+                string address = "127.0.0.1"; // är en local host
+                int port = 8001;
+
+                TcpClient tcpClient = new TcpClient();
+                tcpClient.Connect(address, port);
+
+                byte[] menyValByte = Encoding.Unicode.GetBytes(menyVal);
+
+                //Sickar iväg menyvalet till servern
+                NetworkStream tcpStream = tcpClient.GetStream();
+                tcpStream.Write(menyValByte, 0, menyValByte.Length);
+
+                // Stäng anslutningen:
+                tcpClient.Close();
             }
-            else
+            catch (Exception e)//felmedelande ifall servern inte svarar
             {
-                Console.WriteLine("Skapa användare:");
-                Console.WriteLine("");
-                Console.WriteLine("-----------------------------------------------------------------------------------");
-                Console.WriteLine("");
-                Console.WriteLine("Skapa ett användarnamn som består av 1 till 16 tecken.");
+                Console.WriteLine("Error: " + e.Message);
+            }
+
+        }
+
+        // I skapa användare metoden skapas användare som lagras i servern i ett xml document
+        static string SkapaAnvändare(string inLoggadAnvändare, string menyVal)
+        {
+            if (inLoggadAnvändare == "")//detta betyder att ingen användare har loggat in än
+            {
+                SkickaMenyValTillServer(menyVal);
+
+                Console.WriteLine("----------------------------------------------------");
+                Console.WriteLine("                  Skapa användare                   ");
+                Console.WriteLine("----------------------------------------------------");
+                Console.WriteLine();
+                Console.WriteLine("Skapa ett användarnamn som består av 1 till 16 \ntecken.");
                 Console.WriteLine("Skapa ett lösenord som består av 1 till 16 tecken.");
-                Console.WriteLine("Om ditt användare namn är upptaget kommer du få skriva om igen.");
+                Console.WriteLine("Om ditt användare namn är upptaget kommer du få \nskriva om igen.");
                 Console.WriteLine("Ange sedan det lösenordet du vill ha.");
                 Console.WriteLine();
-                Console.WriteLine("-----------------------------------------------------------------------------------");
+                Console.WriteLine("----------------------------------------------------");
 
                 try //Försöker ansluta till servern om det inte fungerar går det vidare till exception
                 {
@@ -128,7 +135,6 @@ namespace KrypteringsKlient
 
                     TcpClient tcpClient = new TcpClient();
                     tcpClient.Connect(address, port);
-
 
                     // Anslut till servern:
                     Console.WriteLine("Ansluter...");
@@ -182,7 +188,6 @@ namespace KrypteringsKlient
                         byte[] bNyAnvändare = Encoding.Unicode.GetBytes(användare);
 
                         //Sickar iväg användaren till servern
-
                         NetworkStream tcpStream = tcpClient.GetStream();
                         tcpStream.Write(bNyAnvändare, 0, bNyAnvändare.Length);
 
@@ -215,7 +220,7 @@ namespace KrypteringsKlient
                             Console.WriteLine("Tryck på enter för att gå vidare till menyn.");
                             Console.ReadLine();
                             användareSkapad = true;
-                            inLoggad = true;
+                            inLoggadAnvändare = $"{användarnamn}";
                         }
                     }
 
@@ -227,30 +232,31 @@ namespace KrypteringsKlient
                     Console.WriteLine("Error: " + e.Message);
                 }
             }
-
-            return inLoggad;
-        }
-
-        static bool LoggaIn(bool inLoggad)
-        {
-            if (inLoggad == true)
+            else
             {
                 Console.WriteLine("Du har redan loggat in.");
                 Console.WriteLine("Om du vill logga ut måste du först logga ut.");
                 Console.WriteLine("Tryck på enter för att gå vidare till menyn.");
                 Console.ReadLine();
             }
-            else
+
+            return inLoggadAnvändare;
+        }
+
+        static string LoggaIn(string inLoggadAnvändare, string menyVal)
+        {
+            if (inLoggadAnvändare == "")//detta betyder att ingen användare har loggat in än
             {
-                Console.WriteLine("Logga In:");
-                Console.WriteLine("");
-                Console.WriteLine("-----------------------------------------------------------------------------------");
-                Console.WriteLine("");
-                Console.WriteLine("Ange ditt användarnamn och lösenord för att logga in.");
-                Console.WriteLine("Om användarnamnet eller lösenordet är felaktig kommer ett felmedelande upp.");
-                Console.WriteLine("Om det inte existerar ett konto med det användarnamnet kan det skapas under 2.");
+                SkickaMenyValTillServer(menyVal);
+                Console.WriteLine("----------------------------------------------------");
+                Console.WriteLine("                     Logga in                       ");
+                Console.WriteLine("----------------------------------------------------");
                 Console.WriteLine();
-                Console.WriteLine("-----------------------------------------------------------------------------------");
+                Console.WriteLine("Ange ditt användarnamn och lösenord för att logga in.");
+                Console.WriteLine("Om användarnamnet eller lösenordet är felaktig \nkommer ett felmedelande upp.");
+                Console.WriteLine("Om det inte existerar ett konto med det \nanvändarnamnet kan det skapas under 2.");
+                Console.WriteLine();
+                Console.WriteLine("----------------------------------------------------");
 
                 try //Försöker ansluta till servern om det inte fungerar går det vidare till exception
                 {
@@ -262,6 +268,8 @@ namespace KrypteringsKlient
 
                     NetworkStream tcpStream = tcpClient.GetStream();
 
+
+
                     //För att skapa en användare behövs användarnamn och lösenord dessa är båda i string form
                     string användarnamn;
                     string lösenord;
@@ -269,117 +277,125 @@ namespace KrypteringsKlient
                     // Anslut till servern:
                     Console.WriteLine("Ansluter...");
 
-                        //Skapar ett användarnamn inom avgränsningarna
-                        while (true)
+                    //Skapar ett användarnamn inom avgränsningarna
+                    while (true)
+                    {
+                        Console.Write("Användarnamn: ");
+                        användarnamn = Console.ReadLine();
+                        if (användarnamn.Length > 0 && användarnamn.Length < 17)
                         {
-                            Console.Write("Användarnamn: ");
-                            användarnamn = Console.ReadLine();
-                            if (användarnamn.Length > 0 && användarnamn.Length < 17)
-                            {
-                                break;
-                            }
-                            else //Fel text för att underlätta för användaren att förstå vad som gick fel
-                            {
-                                Console.WriteLine();
-                                Console.WriteLine("Användarnamn kan enbart ha 16 tecken");
-                                Console.WriteLine($"Ditt användarnamn hade {användarnamn.Length} tecken");
-                                Console.WriteLine();
-                            }
+                            break;
                         }
-
-                        //Skapar ett lösenord inom avgränsningarna
-                        while (true)
-                        {
-                            Console.Write("Lösenord: ");
-                            lösenord = Console.ReadLine();
-                            if (lösenord.Length > 0 && lösenord.Length < 17)
-                            {
-                                break;
-                            }
-                            else //Fel text för att underlätta för användaren att förstå vad som gick fel
-                            {
-                                Console.WriteLine();
-                                Console.WriteLine("Lösenord kan enbart vara 16 tecken");
-                                Console.WriteLine($"Ditt lösenord hade {lösenord.Length} tecken");
-                                Console.WriteLine();
-                            }
-                        }
-
-                        //Skapa användare som sickas till serven i servern kommer stringen att splittas för att ge 2 stings
-                        string användare = $"{Kryptering.Inkryptering(användarnamn)},{Kryptering.Inkryptering(lösenord)}";
-
-                        byte[] loggInByte = Encoding.Unicode.GetBytes(användare);
-
-                        //Sickar iväg användaren till servern
-                        tcpStream.Write(loggInByte, 0, loggInByte.Length);
-
-
-                        byte[] läsInLoggningsStatusByte = new byte[256];
-                        int läsInLoggningsStatusByteLängd = tcpStream.Read(läsInLoggningsStatusByte, 0, läsInLoggningsStatusByte.Length);
-
-                        // Konvertera meddelandet till ett string-objekt och skriv ut:
-                        string läsInLoggningsStatus = "";
-                        for (int i = 0; i < läsInLoggningsStatusByteLängd; i++)
-                        {
-                            if (i % 2 == 0)
-                            {
-                                läsInLoggningsStatus += Convert.ToChar(läsInLoggningsStatusByte[i]);
-                            }
-                        }
-
-                        if (läsInLoggningsStatus == "Det finns inga skapade konton.")
+                        else //Fel text för att underlätta för användaren att förstå vad som gick fel
                         {
                             Console.WriteLine();
-                            Console.WriteLine(läsInLoggningsStatus);
-                            Console.WriteLine("Tryck på enter för att gå vidare till menyn.");
-                            Console.ReadLine();
+                            Console.WriteLine("Användarnamn kan enbart ha 16 tecken");
+                            Console.WriteLine($"Ditt användarnamn hade {användarnamn.Length} tecken");
+                            Console.WriteLine();
                         }
-                        else if (läsInLoggningsStatus == "Ingen användare vid det namnet existerar.")
+                    }
+
+                    //Skapar ett lösenord inom avgränsningarna
+                    while (true)
+                    {
+                        Console.Write("Lösenord: ");
+                        lösenord = Console.ReadLine();
+                        if (lösenord.Length > 0 && lösenord.Length < 17)
+                        {
+                            break;
+                        }
+                        else //Fel text för att underlätta för användaren att förstå vad som gick fel
                         {
                             Console.WriteLine();
-                            Console.WriteLine(läsInLoggningsStatus);
-                            Console.WriteLine("Tryck på enter för att gå vidare till menyn.");
-                            Console.ReadLine();
-                        }
-                        else if (läsInLoggningsStatus == "Du är nu inloggad!")
-                        {
+                            Console.WriteLine("Lösenord kan enbart vara 16 tecken");
+                            Console.WriteLine($"Ditt lösenord hade {lösenord.Length} tecken");
                             Console.WriteLine();
-                            Console.WriteLine(läsInLoggningsStatus);
-                            Console.WriteLine("Du kan nu titta på och skicka meddelanden");
-                            Console.WriteLine("Tryck på enter för att gå vidare till menyn.");
-                            Console.ReadLine();
-                            inLoggad = true;
                         }
-                        else if (läsInLoggningsStatus == "Felaktigt lösenord.")
+                    }
+
+                    //Skapa användare som sickas till serven i servern kommer stringen att splittas för att ge 2 stings
+                    string användare = $"{Kryptering.Inkryptering(användarnamn)},{Kryptering.Inkryptering(lösenord)}";
+
+                    byte[] loggInByte = Encoding.Unicode.GetBytes(användare);
+
+                    //Sickar iväg användaren till servern
+                    tcpStream.Write(loggInByte, 0, loggInByte.Length);
+
+
+                    byte[] läsInLoggningsStatusByte = new byte[256];
+                    int läsInLoggningsStatusByteLängd = tcpStream.Read(läsInLoggningsStatusByte, 0, läsInLoggningsStatusByte.Length);
+
+                    // Konvertera meddelandet till ett string-objekt och skriv ut:
+                    string läsInLoggningsStatus = "";
+                    for (int i = 0; i < läsInLoggningsStatusByteLängd; i++)
+                    {
+                        if (i % 2 == 0)
                         {
-                            Console.WriteLine();
-                            Console.WriteLine(läsInLoggningsStatus);
-                            Console.WriteLine("Tryck på enter för att gå vidare till menyn.");
-                            Console.ReadLine();
+                            läsInLoggningsStatus += Convert.ToChar(läsInLoggningsStatusByte[i]);
                         }
-                        // Stäng anslutningen:
-                        tcpClient.Close();
-                    
+                    }
+
+                    if (läsInLoggningsStatus == "Det finns inga skapade konton.")
+                    {
+                        Console.WriteLine();
+                        Console.WriteLine(läsInLoggningsStatus);
+                        Console.WriteLine("Tryck på enter för att gå vidare till menyn.");
+                        Console.ReadLine();
+                    }
+                    else if (läsInLoggningsStatus == "Ingen användare vid det namnet existerar.")
+                    {
+                        Console.WriteLine();
+                        Console.WriteLine(läsInLoggningsStatus);
+                        Console.WriteLine("Tryck på enter för att gå vidare till menyn.");
+                        Console.ReadLine();
+                    }
+                    else if (läsInLoggningsStatus == "Du är nu inloggad!")
+                    {
+                        Console.WriteLine();
+                        Console.WriteLine(läsInLoggningsStatus);
+                        Console.WriteLine("Du kan nu titta på och skicka meddelanden");
+                        Console.WriteLine("Tryck på enter för att gå vidare till menyn.");
+                        Console.ReadLine();
+                        inLoggadAnvändare = användarnamn;
+                    }
+                    else if (läsInLoggningsStatus == "Felaktigt lösenord.")
+                    {
+                        Console.WriteLine();
+                        Console.WriteLine(läsInLoggningsStatus);
+                        Console.WriteLine("Tryck på enter för att gå vidare till menyn.");
+                        Console.ReadLine();
+                    }
+                    // Stäng anslutningen:
+                    tcpClient.Close();
+
                 }
                 catch (Exception e)//felmedelande ifall servern inte svarar
                 {
                     Console.WriteLine("Error: " + e.Message);
                 }
             }
-            return inLoggad;
+            else
+            {
+                Console.WriteLine("Du har redan loggat in.");
+                Console.WriteLine("Om du vill logga ut måste du först logga ut.");
+                Console.WriteLine("Tryck på enter för att gå vidare till menyn.");
+                Console.ReadLine();
+            }
+            return inLoggadAnvändare;
         }
 
-        static void NyttMeddelande(bool inLoggad)
+        static void NyttMeddelande(string inLoggadAnvändare, string menyVal)
         {
-            if (inLoggad == false)
+            if (inLoggadAnvändare == "")
             {
                 Console.WriteLine("Du måste logga in för att se ");
-                Console.WriteLine("Om du vill logga ut måste du först logga ut.");
+                Console.WriteLine("Om du vill logga in måste du först logga in.");
                 Console.WriteLine("Tryck på enter för att gå vidare till menyn.");
                 Console.ReadLine();
             }
             else
             {
+                SkickaMenyValTillServer(menyVal);
                 Console.WriteLine("----------------------------------------------------");
                 Console.WriteLine("             SKAPA ETT NYTT MEDDELANDE              ");
                 Console.WriteLine("----------------------------------------------------");
@@ -401,6 +417,11 @@ namespace KrypteringsKlient
 
                     // Anslut till servern:
                     Console.WriteLine("Ansluter...");
+
+                    byte[] sändareByte = Encoding.Unicode.GetBytes(Kryptering.Inkryptering(inLoggadAnvändare));
+
+                    //Sickar iväg användaren till servern
+                    tcpStream.Write(sändareByte, 0, sändareByte.Length);
 
                     string meddelande;
                     bool meddelandeSkapat = false;
@@ -470,8 +491,109 @@ namespace KrypteringsKlient
                     Console.WriteLine("Error: " + e.Message);
                 }
             }
+        }
 
-            Console.WriteLine("hej");
+        static void VisaMeddelanden(string inLoggadAnvändare, string menyVal)
+        {
+            if (inLoggadAnvändare == "")
+            {
+                Console.WriteLine("Du måste logga in för att se ");
+                Console.WriteLine("Om du vill logga in måste du först logga in.");
+                Console.WriteLine("Tryck på enter för att gå vidare till menyn.");
+                Console.ReadLine();
+            }
+            else
+            {
+                SkickaMenyValTillServer(menyVal);
+                Console.WriteLine("----------------------------------------------------");
+                Console.WriteLine("             SKAPA ETT NYTT MEDDELANDE              ");
+                Console.WriteLine("----------------------------------------------------");
+                Console.WriteLine();
+                Console.WriteLine("Skriv in ett meddelande.");
+                Console.WriteLine("Meddelanden ska vara mellan 1 till 250 tecken långt");
+                Console.WriteLine();
+                Console.WriteLine("----------------------------------------------------");
+
+                try //Försöker ansluta till servern om det inte fungerar går det vidare till exception
+                {
+                    string address = "127.0.0.1"; // är en local host
+                    int port = 8001;
+
+                    TcpClient tcpClient = new TcpClient();
+                    tcpClient.Connect(address, port);
+
+                    NetworkStream tcpStream = tcpClient.GetStream();
+
+                    // Anslut till servern:
+                    Console.WriteLine("Ansluter...");
+
+                    Console.WriteLine(inLoggadAnvändare);
+                    byte[] sändareByte = Encoding.Unicode.GetBytes(Kryptering.Inkryptering(inLoggadAnvändare));
+
+                    //Sickar iväg användaren till servern
+                    tcpStream.Write(sändareByte, 0, sändareByte.Length);
+
+                    byte[] läsAntalMeddelandenByte = new byte[256];
+                    int läsAntalMeddelandenByteLängd = tcpStream.Read(läsAntalMeddelandenByte, 0, läsAntalMeddelandenByte.Length);
+
+                    // Konvertera meddelandet till ett string-objekt och skriv ut:
+                    string läsAntalMeddelanden = "";
+                    for (int i = 0; i < läsAntalMeddelandenByteLängd; i++)
+                    {
+                        if (i % 2 == 0)
+                        {
+                            läsAntalMeddelanden += Convert.ToChar(läsAntalMeddelandenByte[i]);
+                        }
+                    }
+
+                    int antalMeddelanden = int.Parse(läsAntalMeddelanden);
+
+                    Console.WriteLine($"Antal meddelanden {antalMeddelanden}");
+
+                    if (antalMeddelanden == 0)
+                    {
+                        Console.WriteLine();
+                        Console.WriteLine("Du har inga skapade meddelanden.");
+                        Console.WriteLine("Tryck på enter för att gå vidare till menyn.");
+                        Console.ReadLine();
+                    }
+                    else
+                    {
+                        for (int i = 0; i < antalMeddelanden; i++)
+                        {
+                            byte[] läsMeddelandeByte = new byte[10000];
+                            int läsMeddelandeLängd = tcpStream.Read(läsMeddelandeByte, 0, läsMeddelandeByte.Length);
+
+                            // Konvertera meddelandet till ett string-objekt och skriv ut:
+                            string läsMeddelande = "";
+                            for (int j = 0; j < läsMeddelandeLängd; j++)
+                            {
+                                if (j % 2 == 0)
+                                {
+                                    läsMeddelande += Convert.ToChar(läsMeddelandeByte[j]);
+                                }
+                            }
+
+                            Console.WriteLine();
+                            Console.WriteLine($"Meddelande {i+1} av {antalMeddelanden}:");
+                            Console.WriteLine();
+                            Console.WriteLine($"{Kryptering.Avkryptera(läsMeddelande)}");
+                        }
+
+                        Console.WriteLine();
+                        Console.WriteLine("Tryck på enter för att gå vidare till menyn.");
+                        Console.ReadLine();
+                    }
+
+                    // Stäng anslutningen:
+                    tcpClient.Close();
+
+                }
+                catch (Exception e)//felmedelande ifall servern inte svarar
+                {
+                    Console.WriteLine("Error: " + e.Message);
+                }
+            }
         }
     }
 }
