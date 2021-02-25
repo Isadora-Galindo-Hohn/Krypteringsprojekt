@@ -70,7 +70,6 @@ namespace KrypteringsServer
 
                     while (menyVal != "7")
                     {
-                        Console.Clear();
                         Console.WriteLine("Väntar på anslutning...");
                         Console.WriteLine("I meny");
 
@@ -510,6 +509,7 @@ namespace KrypteringsServer
                             {
                                 allaMeddelanden.Add(m);
                             }
+
                             Console.WriteLine("meddelanden till laggda");
 
                             läsAntalMeddelanden = Encoding.Unicode.GetBytes($"{allaMeddelanden.Count}");
