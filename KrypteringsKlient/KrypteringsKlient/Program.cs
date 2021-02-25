@@ -27,6 +27,7 @@ namespace KrypteringsKlient
 
                     while (menyVal != "7")
                     {
+                        Console.Clear();
                         Console.WriteLine();
                         Console.WriteLine("----------------------------------------------------");
                         Console.WriteLine("                     MENY                           ");
@@ -143,90 +144,84 @@ namespace KrypteringsKlient
                     //För att skapa en användare behövs användarnamn och lösenord dessa är båda i string form
                     string användarnamn;
                     string lösenord;
-                    bool användareSkapad = false;
 
-                    while (användareSkapad == false)//Pågar så länge en användare har skapats
+                    //Skapar ett användarnamn inom avgränsningarna
+                    while (true)
                     {
-                        //Skapar ett användarnamn inom avgränsningarna
-                        while (true)
+                        Console.Write("Användarnamn: ");
+                        användarnamn = Console.ReadLine();
+
+                        ValideraInmatning(användarnamn);
+                        if (användarnamn.Length < 17)
                         {
-                            Console.Write("Användarnamn: ");
-                            användarnamn = Console.ReadLine();
-
-                            ValideraInmatning(användarnamn);
-                            if (användarnamn.Length < 17)
-                            {
-                                break;
-                            }
-                            else //Fel text för att underlätta för användaren att förstå vad som gick fel
-                            {
-                                Console.WriteLine();
-                                Console.WriteLine("Ditt användarnamn ska vara mellan 1 till 16 tecken långt");
-                                Console.WriteLine($"Ditt användarnamn hade {användarnamn.Length} antal tecken");
-                                Console.WriteLine();
-                            }
+                            break;
                         }
-
-                        //Skapar ett lösenord inom avgränsningarna
-                        while (true)
-                        {
-                            Console.Write("Lösenord: ");
-
-                            lösenord = Console.ReadLine();
-                            ValideraInmatning(lösenord);
-                            if (lösenord.Length < 17)
-                            {
-                                break;
-                            }
-                            else //Fel text för att underlätta för användaren att förstå vad som gick fel
-                            {
-                                Console.WriteLine();
-                                Console.WriteLine("Ditt lösenord ska vara mellan 1 till 16 tecken långt");
-                                Console.WriteLine($"Ditt lösenord hade {lösenord.Length} antal tecken");
-                                Console.WriteLine();
-                            }
-                        }
-
-                        //Skapa användare som sickas till serven i servern kommer stringen att splittas för att ge 2 stings
-                        string användare = $"{Kryptering.Inkryptering(användarnamn)},{Kryptering.Inkryptering(lösenord)}";
-
-                        byte[] bNyAnvändare = Encoding.Unicode.GetBytes(användare);
-
-                        //Sickar iväg användaren till servern
-                        NetworkStream tcpStream = tcpClient.GetStream();
-                        tcpStream.Write(bNyAnvändare, 0, bNyAnvändare.Length);
-
-                        byte[] läsAnvändarskapningsStatusByte = new byte[256];
-                        int läsAnvändarskapningsStatusLängd = tcpStream.Read(läsAnvändarskapningsStatusByte, 0, läsAnvändarskapningsStatusByte.Length);
-
-                        // Konvertera meddelandet till ett string-objekt och skriv ut:
-                        string läsAnvändarskapningsStatus = "";
-                        for (int i = 0; i < läsAnvändarskapningsStatusLängd; i++)
-                        {
-                            if (i % 2 == 0)
-                            {
-                                läsAnvändarskapningsStatus += Convert.ToChar(läsAnvändarskapningsStatusByte[i]);
-                            }
-                        }
-
-                        if (läsAnvändarskapningsStatus == "Användarnamnet är upptaget, försök igen.")
+                        else //Fel text för att underlätta för användaren att förstå vad som gick fel
                         {
                             Console.WriteLine();
-                            Console.WriteLine(läsAnvändarskapningsStatus);
-                            Console.WriteLine("Tryck på enter för att gå vidare till menyn.");
-                            Console.ReadLine();
-                            användareSkapad = true;
+                            Console.WriteLine("Ditt användarnamn ska vara mellan 1 till 16 tecken långt");
+                            Console.WriteLine($"Ditt användarnamn hade {användarnamn.Length} antal tecken");
+                            Console.WriteLine();
                         }
+                    }
 
-                        else if (läsAnvändarskapningsStatus == "Användare skapad!")
+                    //Skapar ett lösenord inom avgränsningarna
+                    while (true)
+                    {
+                        Console.Write("Lösenord: ");
+
+                        lösenord = Console.ReadLine();
+                        ValideraInmatning(lösenord);
+                        if (lösenord.Length < 17)
+                        {
+                            break;
+                        }
+                        else //Fel text för att underlätta för användaren att förstå vad som gick fel
                         {
                             Console.WriteLine();
-                            Console.WriteLine(läsAnvändarskapningsStatus);
-                            Console.WriteLine("Tryck på enter för att gå vidare till menyn.");
-                            Console.ReadLine();
-                            användareSkapad = true;
-                            inLoggadAnvändare = $"{användarnamn}";
+                            Console.WriteLine("Ditt lösenord ska vara mellan 1 till 16 tecken långt");
+                            Console.WriteLine($"Ditt lösenord hade {lösenord.Length} antal tecken");
+                            Console.WriteLine();
                         }
+                    }
+
+                    //Skapa användare som sickas till serven i servern kommer stringen att splittas för att ge 2 stings
+                    string användare = $"{Kryptering.Inkryptering(användarnamn)},{Kryptering.Inkryptering(lösenord)}";
+
+                    byte[] bNyAnvändare = Encoding.Unicode.GetBytes(användare);
+
+                    //Sickar iväg användaren till servern
+                    NetworkStream tcpStream = tcpClient.GetStream();
+                    tcpStream.Write(bNyAnvändare, 0, bNyAnvändare.Length);
+
+                    byte[] läsAnvändarskapningsStatusByte = new byte[256];
+                    int läsAnvändarskapningsStatusLängd = tcpStream.Read(läsAnvändarskapningsStatusByte, 0, läsAnvändarskapningsStatusByte.Length);
+
+                    // Konvertera meddelandet till ett string-objekt och skriv ut:
+                    string läsAnvändarskapningsStatus = "";
+                    for (int i = 0; i < läsAnvändarskapningsStatusLängd; i++)
+                    {
+                        if (i % 2 == 0)
+                        {
+                            läsAnvändarskapningsStatus += Convert.ToChar(läsAnvändarskapningsStatusByte[i]);
+                        }
+                    }
+
+                    if (läsAnvändarskapningsStatus == "Användarnamnet är upptaget, försök igen.")
+                    {
+                        Console.WriteLine();
+                        Console.WriteLine(läsAnvändarskapningsStatus);
+                        Console.WriteLine("Tryck på enter för att gå vidare till menyn.");
+                        Console.ReadLine();
+                    }
+
+                    else if (läsAnvändarskapningsStatus == "Användare skapad!")
+                    {
+                        Console.WriteLine();
+                        Console.WriteLine(läsAnvändarskapningsStatus);
+                        Console.WriteLine("Tryck på enter för att gå vidare till menyn.");
+                        Console.ReadLine();
+                        inLoggadAnvändare = användarnamn;
                     }
 
                     // Stäng anslutningen:

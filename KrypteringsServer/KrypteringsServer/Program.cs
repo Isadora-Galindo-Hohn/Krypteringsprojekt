@@ -65,7 +65,6 @@ namespace KrypteringsServer
             {
                 try
                 {
-
                     //meny som består av en switch som skickar använderen till olika metoder beroende på vilket case som anropas
                     string menyVal = "";
 
@@ -114,10 +113,6 @@ namespace KrypteringsServer
 
                             case "5":
                                 LaddaNerMeddelanden(användarLista);
-                                break;
-
-                            case "6":
-                                inLoggad = false;
                                 break;
 
                             default: //default gör att så läge stringen inte är lika med 1-7 går den hit och visar menyn igen
