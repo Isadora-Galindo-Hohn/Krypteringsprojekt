@@ -87,32 +87,6 @@ namespace KrypteringsKlient
             }
         }
 
-        static void SkickaMenyValTillServer(string menyVal)
-        {
-            try //Försöker ansluta till servern om det inte fungerar går det vidare till exception
-            {
-                string address = "127.0.0.1"; // är en local host
-                int port = 8001;
-
-                TcpClient tcpClient = new TcpClient();
-                tcpClient.Connect(address, port);
-
-                byte[] menyValByte = Encoding.Unicode.GetBytes(menyVal);
-
-                //Sickar iväg menyvalet till servern
-                NetworkStream tcpStream = tcpClient.GetStream();
-                tcpStream.Write(menyValByte, 0, menyValByte.Length);
-
-                // Stäng anslutningen:
-                tcpClient.Close();
-            }
-            catch (Exception e)//felmedelande ifall servern inte svarar
-            {
-                Console.WriteLine("Error: " + e.Message);
-            }
-
-        }
-
         // I skapa användare metoden skapas användare som lagras i servern i ett xml document
         static string SkapaAnvändare(string inLoggadAnvändare, string menyVal)
         {
@@ -761,5 +735,32 @@ namespace KrypteringsKlient
                 throw new InmatningÄrNull();
             }
         }
+
+        static void SkickaMenyValTillServer(string menyVal)
+        {
+            try //Försöker ansluta till servern om det inte fungerar går det vidare till exception
+            {
+                string address = "127.0.0.1"; // är en local host
+                int port = 8001;
+
+                TcpClient tcpClient = new TcpClient();
+                tcpClient.Connect(address, port);
+
+                byte[] menyValByte = Encoding.Unicode.GetBytes(menyVal);
+
+                //Sickar iväg menyvalet till servern
+                NetworkStream tcpStream = tcpClient.GetStream();
+                tcpStream.Write(menyValByte, 0, menyValByte.Length);
+
+                // Stäng anslutningen:
+                tcpClient.Close();
+            }
+            catch (Exception e)//felmedelande ifall servern inte svarar
+            {
+                Console.WriteLine("Error: " + e.Message);
+            }
+
+        }
+
     }
 }

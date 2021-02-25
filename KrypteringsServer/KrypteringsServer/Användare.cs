@@ -41,12 +41,5 @@ namespace KrypteringsServer
                 return meddelanden;
             }
         }
-
-        public void Print()
-        {
-            Console.WriteLine("=============================================================");
-            Console.WriteLine("Användare: " + användarNamn);
-            Console.WriteLine("Lösenord: " + användarLösenord);
-        }
     }
 }
